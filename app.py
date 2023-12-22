@@ -12,30 +12,57 @@ def calculate_additional_metrics(df):
     df['Cap Rate'] = df['Net Operating Income'] / df['Current Market Value']
     return df
 
-# Example data for 10 properties
-data = {
-    'Property': ['Property 1', 'Property 2', 'Property 3', 'Property 4', 'Property 5', 'Property 6', 'Property 7', 'Property 8', 'Property 9', 'Property 10'],
-    'Net Profit': [100000, 80000, 120000, 90000, 110000, 95000, 105000, 88000, 115000, 100000],
-    'Cost of Investment': [500000, 600000, 450000, 550000, 480000, 520000, 490000, 610000, 470000, 500000],
-    'Discount Rate': [0.05, 0.06, 0.04, 0.05, 0.03, 0.07, 0.04, 0.06, 0.05, 0.05],
-    'Initial Investment': [450000, 500000, 400000, 480000, 420000, 460000, 430000, 520000, 390000, 450000],
-    'Net Operating Income': [80000, 75000, 90000, 82000, 88000, 83000, 86000, 74000, 91000, 80000],
-    'Market Price per Share': [50, 60, 45, 55, 48, 52, 49, 61, 47, 50],
-    'Dividends on Preferred Stock': [5000, 6000, 4500, 5500, 4800, 5200, 4900, 6100, 4700, 5000],
-    'Average Outstanding Shares': [20000, 18000, 22000, 19000, 21000, 20000, 20500, 17500, 22500, 20000],
-    'Current Market Value': [600000, 550000, 620000, 580000, 590000, 610000, 570000, 540000, 630000, 600000],
-}
-
-df = pd.DataFrame(data)
-
-# Calculate additional metrics
-df = calculate_additional_metrics(df)
-
 # Streamlit app
 st.title('Property Investment Analysis')
 
-# Displaying the data
-st.dataframe(df)
+# Option to add new property through user input
+add_property_option = st.radio("Add Property:", ("Manually", "Upload CSV"))
+
+if add_property_option == "Manually":
+    # Example data for 10 properties
+    data = {
+        'Property': ['Property 1', 'Property 2', 'Property 3', 'Property 4', 'Property 5', 'Property 6', 'Property 7', 'Property 8', 'Property 9', 'Property 10'],
+        'Net Profit': [100000, 80000, 120000, 90000, 110000, 95000, 105000, 88000, 115000, 100000],
+        'Cost of Investment': [500000, 600000, 450000, 550000, 480000, 520000, 490000, 610000, 470000, 500000],
+        'Discount Rate': [0.05, 0.06, 0.04, 0.05, 0.03, 0.07, 0.04, 0.06, 0.05, 0.05],
+        'Initial Investment': [450000, 500000, 400000, 480000, 420000, 460000, 430000, 520000, 390000, 450000],
+        'Net Operating Income': [80000, 75000, 90000, 82000, 88000, 83000, 86000, 74000, 91000, 80000],
+        'Market Price per Share': [50, 60, 45, 55, 48, 52, 49, 61, 47, 50],
+        'Dividends on Preferred Stock': [5000, 6000, 4500, 5500, 4800, 5200, 4900, 6100, 4700, 5000],
+        'Average Outstanding Shares': [20000, 18000, 22000, 19000, 21000, 20000, 20500, 17500, 22500, 20000],
+        'Current Market Value': [600000, 550000, 620000, 580000, 590000, 610000, 570000, 540000, 630000, 600000],
+    }
+
+    df = pd.DataFrame(data)
+
+    # Calculate additional metrics
+    df = calculate_additional_metrics(df)
+
+    # Displaying the data
+    st.dataframe(df)
+
+elif add_property_option == "Upload CSV":
+    st.subheader("Upload CSV file with property data:")
+    uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
+
+    if uploaded_file is not None:
+        df_upload = pd.read_csv(uploaded_file)
+
+        # Check if the required columns are present in the uploaded CSV
+        required_columns = ['Property', 'Net Profit', 'Cost of Investment', 'Discount Rate',
+                            'Initial Investment', 'Net Operating Income', 'Market Price per Share',
+                            'Dividends on Preferred Stock', 'Average Outstanding Shares', 'Current Market Value']
+
+        if all(col in df_upload.columns for col in required_columns):
+            # Calculate additional metrics
+            df_upload = calculate_additional_metrics(df_upload)
+
+            # Displaying the uploaded data
+            st.subheader("Uploaded Property Data:")
+            st.dataframe(df_upload)
+
+        else:
+            st.error("Please make sure the uploaded CSV file contains all required columns.")
 
 # Add new property through user input
 new_property = st.expander('Add New Property')
@@ -69,5 +96,6 @@ with new_property:
         df = df.append(new_data, ignore_index=True)
         df = calculate_additional_metrics(df)
 
-# Displaying the updated data
-st.dataframe(df)
+        # Displaying the updated data
+        st.subheader("Updated Property Data:")
+        st.dataframe(df)
