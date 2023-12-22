@@ -38,7 +38,7 @@ st.title('Property Investment Analysis')
 st.dataframe(df)
 
 # Add new property through user input
-new_property = st.beta_expander('Add New Property')
+new_property = st.expander('Add New Property')
 
 with new_property:
     property_name = st.text_input('Property Name', '')
