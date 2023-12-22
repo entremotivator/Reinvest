@@ -12,90 +12,114 @@ def calculate_additional_metrics(df):
     df['Cap Rate'] = df['Net Operating Income'] / df['Current Market Value']
     return df
 
-# Streamlit app
-st.title('Property Investment Analysis')
+def display_property_data(df, title):
+    st.subheader(title)
+    st.dataframe(df.style.format({
+        'Discount Rate': "{:.2%}",
+        'ROI': "{:.2f}%",
+        'NPV': "${:,.2f}",
+        'Cash Flow': "${:,.2f}",
+        'IRR': "{:.2f}%",
+        'Debt-to-Equity Ratio': "{:.2f}",
+        'EPS': "${:,.2f}",
+        'P/E Ratio': "{:.2f}",
+        'Cap Rate': "{:.2%}"
+    }))
 
-# Option to add new property through user input
-add_property_option = st.radio("Add Property:", ("Manually", "Upload CSV"))
+def add_new_property(expander_title, df):
+    new_property_expander = st.expander(expander_title)
 
-if add_property_option == "Manually":
-    # Example data for 10 properties
-    data = {
-        'Property': ['Property 1', 'Property 2', 'Property 3', 'Property 4', 'Property 5', 'Property 6', 'Property 7', 'Property 8', 'Property 9', 'Property 10'],
-        'Net Profit': [100000, 80000, 120000, 90000, 110000, 95000, 105000, 88000, 115000, 100000],
-        'Cost of Investment': [500000, 600000, 450000, 550000, 480000, 520000, 490000, 610000, 470000, 500000],
-        'Discount Rate': [0.05, 0.06, 0.04, 0.05, 0.03, 0.07, 0.04, 0.06, 0.05, 0.05],
-        'Initial Investment': [450000, 500000, 400000, 480000, 420000, 460000, 430000, 520000, 390000, 450000],
-        'Net Operating Income': [80000, 75000, 90000, 82000, 88000, 83000, 86000, 74000, 91000, 80000],
-        'Market Price per Share': [50, 60, 45, 55, 48, 52, 49, 61, 47, 50],
-        'Dividends on Preferred Stock': [5000, 6000, 4500, 5500, 4800, 5200, 4900, 6100, 4700, 5000],
-        'Average Outstanding Shares': [20000, 18000, 22000, 19000, 21000, 20000, 20500, 17500, 22500, 20000],
-        'Current Market Value': [600000, 550000, 620000, 580000, 590000, 610000, 570000, 540000, 630000, 600000],
-    }
+    with new_property_expander:
+        st.subheader("Enter Property Details:")
+        property_name = st.text_input('Property Name', '').strip()
 
-    df = pd.DataFrame(data)
+        financial_details = {
+            'Net Profit': st.number_input('Net Profit', min_value=0),
+            'Cost of Investment': st.number_input('Cost of Investment', min_value=0),
+            'Discount Rate': st.slider('Discount Rate', min_value=0.01, max_value=1.0, value=0.05, step=0.01),
+            'Initial Investment': st.number_input('Initial Investment', min_value=0),
+            'Net Operating Income': st.number_input('Net Operating Income', min_value=0),
+            'Market Price per Share': st.number_input('Market Price per Share', min_value=0),
+            'Dividends on Preferred Stock': st.number_input('Dividends on Preferred Stock', min_value=0),
+            'Average Outstanding Shares': st.number_input('Average Outstanding Shares', min_value=0),
+            'Current Market Value': st.number_input('Current Market Value', min_value=0)
+        }
 
-    # Calculate additional metrics
-    df = calculate_additional_metrics(df)
+        if st.button('Add Property'):
+            new_data = {'Property': property_name, **financial_details}
+            df = df.append(new_data, ignore_index=True)
+            df = calculate_additional_metrics(df)
 
-    # Displaying the data
-    st.dataframe(df)
+            # Displaying the updated data
+            display_property_data(df, "Updated Property Data:")
 
-elif add_property_option == "Upload CSV":
-    st.subheader("Upload CSV file with property data:")
-    uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
+    return df
 
-    if uploaded_file is not None:
+def validate_and_display_uploaded_data(uploaded_file):
+    try:
         df_upload = pd.read_csv(uploaded_file)
 
-        # Check if the required columns are present in the uploaded CSV
+        # Validate columns in the uploaded CSV
         required_columns = ['Property', 'Net Profit', 'Cost of Investment', 'Discount Rate',
                             'Initial Investment', 'Net Operating Income', 'Market Price per Share',
                             'Dividends on Preferred Stock', 'Average Outstanding Shares', 'Current Market Value']
 
-        if all(col in df_upload.columns for col in required_columns):
-            # Calculate additional metrics
-            df_upload = calculate_additional_metrics(df_upload)
+        missing_columns = set(required_columns) - set(df_upload.columns)
 
-            # Displaying the uploaded data
-            st.subheader("Uploaded Property Data:")
-            st.dataframe(df_upload)
+        if not missing_columns:
+            # Validate numeric columns in the uploaded CSV
+            numeric_columns = df_upload.select_dtypes(include='number').columns
+            if not numeric_columns.empty:
+                # Calculate additional metrics
+                df_upload = calculate_additional_metrics(df_upload)
 
+                # Displaying the uploaded data
+                display_property_data(df_upload, "Uploaded Property Data:")
+            else:
+                st.error("No numeric columns found in the uploaded CSV.")
         else:
-            st.error("Please make sure the uploaded CSV file contains all required columns.")
+            st.error(f"Please make sure the uploaded CSV file contains all required columns: {', '.join(missing_columns)}.")
 
-# Add new property through user input
-new_property = st.expander('Add New Property')
+    except pd.errors.EmptyDataError:
+        st.error("The uploaded CSV file is empty.")
+    except Exception as e:
+        st.error(f"An error occurred while processing the uploaded file: {str(e)}")
 
-with new_property:
-    property_name = st.text_input('Property Name', '')
-    net_profit = st.number_input('Net Profit', value=0)
-    cost_of_investment = st.number_input('Cost of Investment', value=0)
-    discount_rate = st.number_input('Discount Rate', value=0.05)
-    initial_investment = st.number_input('Initial Investment', value=0)
-    net_operating_income = st.number_input('Net Operating Income', value=0)
-    market_price_per_share = st.number_input('Market Price per Share', value=0)
-    dividends_on_preferred_stock = st.number_input('Dividends on Preferred Stock', value=0)
-    avg_outstanding_shares = st.number_input('Average Outstanding Shares', value=0)
-    current_market_value = st.number_input('Current Market Value', value=0)
+def main():
+    # Streamlit app settings
+    st.set_page_config(
+        page_title="Property Investment Analysis",
+        page_icon=":house:",
+        layout="wide"
+    )
 
-    if st.button('Add Property'):
-        new_data = {
-            'Property': property_name,
-            'Net Profit': net_profit,
-            'Cost of Investment': cost_of_investment,
-            'Discount Rate': discount_rate,
-            'Initial Investment': initial_investment,
-            'Net Operating Income': net_operating_income,
-            'Market Price per Share': market_price_per_share,
-            'Dividends on Preferred Stock': dividends_on_preferred_stock,
-            'Average Outstanding Shares': avg_outstanding_shares,
-            'Current Market Value': current_market_value,
-        }
+    # Sidebar
+    st.sidebar.title("Options")
+    add_property_option = st.sidebar.radio("Add Property:", ("Manually", "Upload CSV"))
 
-        df = df.append(new_data, ignore_index=True)
-        df = calculate_additional_metrics(df)
+    # Main content
+    st.title('Property Investment Analysis')
 
-        # Displaying the updated data
-        st.subheader("Updated Property Data:")
-        st.dataframe(df)
+    # Initialize DataFrame
+    df = pd.DataFrame()
+
+    # Option to add new property through user input
+    if add_property_option == "Manually":
+        df = add_new_property('Add New Property', df)
+    elif add_property_option == "Upload CSV":
+        st.subheader("Upload CSV file with property data:")
+        uploaded_file = st.file_uploader("Choose a CSV file", type=["csv"])
+
+        if uploaded_file is not None:
+            validate_and_display_uploaded_data(uploaded_file)
+
+    # Display the existing data
+    if not df.empty:
+        display_property_data(df, "Existing Property Data:")
+
+    # Add new property through user input
+    df = add_new_property('Add New Property', df)
+
+if __name__ == "__main__":
+    main()
+
