@@ -14,41 +14,42 @@ def calculate_additional_metrics(df):
 
 def display_property_data(df, title):
     st.subheader(title)
-    st.dataframe(df)
+    st.dataframe(df.style.format({
+        'Discount Rate': "{:.2%}",
+        'ROI': "{:.2f}%",
+        'NPV': "${:,.2f}",
+        'Cash Flow': "${:,.2f}",
+        'IRR': "{:.2f}%",
+        'Debt-to-Equity Ratio': "{:.2f}",
+        'EPS': "${:,.2f}",
+        'P/E Ratio': "{:.2f}",
+        'Cap Rate': "{:.2%}"
+    }))
+
+def numeric_input(label, default_value=0, min_value=None, max_value=None, step=None):
+    return st.number_input(label, value=default_value, min_value=min_value, max_value=max_value, step=step)
 
 def add_new_property(expander_title, df):
     new_property_expander = st.expander(expander_title)
 
     with new_property_expander:
+        st.subheader("Enter Property Details:")
         property_name = st.text_input('Property Name', '').strip()
 
-        # Validate and get numeric inputs
-        numeric_input = lambda label, default_value=0, min_value=0: st.number_input(label, value=default_value, min_value=min_value)
-
-        net_profit = numeric_input('Net Profit')
-        cost_of_investment = numeric_input('Cost of Investment')
-        discount_rate = numeric_input('Discount Rate', 0.05, 0, 1, 0.01)
-        initial_investment = numeric_input('Initial Investment')
-        net_operating_income = numeric_input('Net Operating Income')
-        market_price_per_share = numeric_input('Market Price per Share')
-        dividends_on_preferred_stock = numeric_input('Dividends on Preferred Stock')
-        avg_outstanding_shares = numeric_input('Average Outstanding Shares')
-        current_market_value = numeric_input('Current Market Value')
+        financial_details = {
+            'Net Profit': numeric_input('Net Profit', min_value=0),
+            'Cost of Investment': numeric_input('Cost of Investment', min_value=0),
+            'Discount Rate': numeric_input('Discount Rate', default_value=0.05, min_value=0, max_value=1, step=0.01),
+            'Initial Investment': numeric_input('Initial Investment', min_value=0),
+            'Net Operating Income': numeric_input('Net Operating Income', min_value=0),
+            'Market Price per Share': numeric_input('Market Price per Share', min_value=0),
+            'Dividends on Preferred Stock': numeric_input('Dividends on Preferred Stock', min_value=0),
+            'Average Outstanding Shares': numeric_input('Average Outstanding Shares', min_value=0),
+            'Current Market Value': numeric_input('Current Market Value', min_value=0)
+        }
 
         if st.button('Add Property'):
-            new_data = {
-                'Property': property_name,
-                'Net Profit': net_profit,
-                'Cost of Investment': cost_of_investment,
-                'Discount Rate': discount_rate,
-                'Initial Investment': initial_investment,
-                'Net Operating Income': net_operating_income,
-                'Market Price per Share': market_price_per_share,
-                'Dividends on Preferred Stock': dividends_on_preferred_stock,
-                'Average Outstanding Shares': avg_outstanding_shares,
-                'Current Market Value': current_market_value,
-            }
-
+            new_data = {'Property': property_name, **financial_details}
             df = df.append(new_data, ignore_index=True)
             df = calculate_additional_metrics(df)
 
@@ -66,7 +67,9 @@ def validate_and_display_uploaded_data(uploaded_file):
                             'Initial Investment', 'Net Operating Income', 'Market Price per Share',
                             'Dividends on Preferred Stock', 'Average Outstanding Shares', 'Current Market Value']
 
-        if set(required_columns).issubset(df_upload.columns):
+        missing_columns = set(required_columns) - set(df_upload.columns)
+
+        if not missing_columns:
             # Validate numeric columns in the uploaded CSV
             numeric_columns = df_upload.select_dtypes(include='number').columns
             if not numeric_columns.empty:
@@ -78,8 +81,10 @@ def validate_and_display_uploaded_data(uploaded_file):
             else:
                 st.error("No numeric columns found in the uploaded CSV.")
         else:
-            st.error(f"Please make sure the uploaded CSV file contains all required columns: {', '.join(required_columns)}.")
+            st.error(f"Please make sure the uploaded CSV file contains all required columns: {', '.join(missing_columns)}.")
 
+    except pd.errors.EmptyDataError:
+        st.error("The uploaded CSV file is empty.")
     except Exception as e:
         st.error(f"An error occurred while processing the uploaded file: {str(e)}")
 
