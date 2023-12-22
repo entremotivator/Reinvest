@@ -30,9 +30,9 @@ def add_new_property(expander_title, df):
     new_property_expander = st.expander(expander_title)
 
     with new_property_expander:
-        st.subheader("Enter Property Details:")
         property_name = st.text_input('Property Name', '').strip()
 
+        st.subheader("Enter Financial Details:")
         financial_details = {
             'Net Profit': st.number_input('Net Profit', min_value=0),
             'Cost of Investment': st.number_input('Cost of Investment', min_value=0),
@@ -67,21 +67,14 @@ def validate_and_display_uploaded_data(uploaded_file):
         missing_columns = set(required_columns) - set(df_upload.columns)
 
         if not missing_columns:
-            # Validate numeric columns in the uploaded CSV
-            numeric_columns = df_upload.select_dtypes(include='number').columns
-            if not numeric_columns.empty:
-                # Calculate additional metrics
-                df_upload = calculate_additional_metrics(df_upload)
+            # Calculate additional metrics
+            df_upload = calculate_additional_metrics(df_upload)
 
-                # Displaying the uploaded data
-                display_property_data(df_upload, "Uploaded Property Data:")
-            else:
-                st.error("No numeric columns found in the uploaded CSV.")
+            # Displaying the uploaded data
+            display_property_data(df_upload, "Uploaded Property Data:")
         else:
             st.error(f"Please make sure the uploaded CSV file contains all required columns: {', '.join(missing_columns)}.")
 
-    except pd.errors.EmptyDataError:
-        st.error("The uploaded CSV file is empty.")
     except Exception as e:
         st.error(f"An error occurred while processing the uploaded file: {str(e)}")
 
@@ -122,4 +115,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
