@@ -7,7 +7,7 @@ def calculate_additional_metrics(df):
     df['IRR'] = df.apply(lambda row: round(100 * (1 + row['Discount Rate']) ** 2, 2), axis=1)
     df['Cash Flow'] = df['Net Profit'] - df['Initial Investment']
     df['Debt-to-Equity Ratio'] = df['Cost of Investment'] / df['Net Profit']
-    df['EPS'] = (df['Net Income'] - df['Dividends on Preferred Stock']) / df['Average Outstanding Shares']
+    df['EPS'] = (df['Net Profit'] - df['Dividends on Preferred Stock']) / df['Average Outstanding Shares']
     df['P/E Ratio'] = df['Market Price per Share'] / df['EPS']
     df['Cap Rate'] = df['Net Operating Income'] / df['Current Market Value']
     return df
